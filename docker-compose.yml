@@ -1,0 +1,60 @@
+version: '3.3'
+
+services:
+  postgres-banzai:
+    image: kartoza/postgis:11.5-2.5
+    container_name: postgres-banzai
+    restart: always
+    environment:
+      - POSTGRES_USER=banzai
+      - POSTGRES_PASSWORD=pass
+      - POSTGRES_DB=banzai-local
+    volumes:
+      - postgres_banzai_data:/var/lib/postgresql/data/
+    ports:
+      - "5434:5432"
+
+  banzai:
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    image: banzai
+    container_name: banzai
+    command: bash -c "sleep 25 && python3 manage.py migrate && gunicorn -w 4 banzai.wsgi:application -b 0.0.0.0:80"
+    env_file:
+      - .env
+    ports:
+      - "9090:80"
+    volumes:
+      - ./app:/app
+    depends_on:
+      - postgres-banzai
+
+  rabbitmq-banzai:
+    image: rabbitmq:management-alpine
+    container_name: rabbitmq-banzai
+    hostname: rabbitmq-banzai
+    ports:
+      - "15674:15672"
+    environment:
+      - RABBITMQ_DEFAULT_USER=banzai
+      - RABBITMQ_DEFAULT_PASS=!QIO09fr4
+      - RABBITMQ_DEFAULT_VHOST=vhost-local
+
+  celery-banzai:
+    image: banzai
+    container_name: celery-worker-banzai
+    command: celery -A banzai worker -l info
+    ports:
+      - "5556:5555"
+    env_file:
+      - .env
+    volumes:
+      - ./app:/app
+    depends_on:
+      - postgres-banzai
+      - rabbitmq-banzai
+
+
+volumes:
+  postgres_banzai_data:
