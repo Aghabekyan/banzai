@@ -30,6 +30,7 @@ Bob      |   +1877-561-3295   |     bob@mail.com
 
 Clone or download the project. Go to the backend directory and run the following commands to build and run the app
 ```
+docker-compose pull
 docker-compose build
 docker-compose up
 the application running on 127.0.0.1:9090
